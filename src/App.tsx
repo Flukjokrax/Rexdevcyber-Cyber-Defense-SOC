@@ -49,6 +49,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { Analytics } from "@vercel/analytics/react";
 import { db } from './lib/firebase';
 import Header from "./components/Header";
 import ThreatMap from "./components/ThreatMap";
@@ -518,6 +519,7 @@ REXDEVCYBER - Advanced Security Intelligence
 
   return (
     <div className="min-h-screen bg-[#05070d] text-slate-300 flex flex-col font-sans selection:bg-[#ff2020] selection:text-white relative overflow-hidden">
+      <Analytics />
       {/* Interactive Particles Layer */}
       <ParticlesBg />
 
