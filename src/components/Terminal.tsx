@@ -141,7 +141,7 @@ export default function Terminal() {
         addLine("1. RexRecon        - Advanced multi-threaded OSINT metadata harvester. [Stars: 310 | Forks: 72]", "output");
         addLine("2. WebVulnScanner  - Custom web scanner identifying injection entrypoints. [Stars: 244 | Forks: 58]", "output");
         addLine("3. SecUtils        - Collection of security hardening modules for Linux servers. [Stars: 198 | Forks: 41]", "output");
-        addLine("To view or audit, navigate to github.com/rexdevcyber", "info");
+        addLine("To view or audit, navigate to github.com/rexdevcyber/rexrecon", "info");
         setLoading(false);
         break;
 
@@ -179,7 +179,8 @@ export default function Terminal() {
           });
 
           if (!response.ok) {
-            throw new Error("Target firewall or network gateway rejected scan request.");
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || "Target firewall or network gateway rejected scan request.");
           }
 
           const data = await response.json();
@@ -231,7 +232,8 @@ export default function Terminal() {
           });
 
           if (!response.ok) {
-            throw new Error("AI core unavailable.");
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || "AI core unavailable.");
           }
 
           const data = await response.json();

@@ -74,9 +74,15 @@ async function startServer() {
       res.json({ content: replyText });
     } catch (error: any) {
       console.error("Gemini Chat API Error:", error);
-      res.status(500).json({
-        error: error.message || "An error occurred in the REXDEVCYBER AI defense core.",
-      });
+      
+      let errorMessage = error.message || "An error occurred in the REXDEVCYBER AI defense core.";
+      
+      // Handle leaked API key specifically
+      if (errorMessage.includes("leaked") || (error.status === 403 && errorMessage.includes("PERMISSION_DENIED"))) {
+        errorMessage = "CRITICAL: The configured Gemini API key has been flagged as leaked and is disabled. Please update your API key in the AI Studio Settings > Secrets panel (GEMINI_API_KEY).";
+      }
+
+      res.status(500).json({ error: errorMessage });
     }
   });
 
@@ -158,7 +164,14 @@ async function startServer() {
         aiReport = response.text || "Report compilation failed.";
       } catch (geminiErr: any) {
         console.warn("Gemini Scan Report generation failed, fallback to local reports:", geminiErr);
-        aiReport = `### REXDEVCYBER Vulnerability Assessment (Fallback Mode)\n\nWe scanned **${target}** but could not reach the remote Gemini AI engine to produce a customized assessment.\n\n* **Status**: Warning\n* **Open Ports**: ${activePorts.map(p => `${p.port}/${p.service}`).join(", ")}\n* **Recommendation**: Ensure your API keys are updated in Secrets.`;
+        
+        let customMessage = "We scanned **" + target + "** but could not reach the remote Gemini AI engine to produce a customized assessment.";
+        
+        if (geminiErr.message?.includes("leaked") || geminiErr.status === 403) {
+          customMessage = "CRITICAL SECURITY ALERT: The Gemini API key used for report generation is disabled (FLAGGED AS LEAKED). Security intelligence core is currently offline.";
+        }
+
+        aiReport = `### REXDEVCYBER Vulnerability Assessment (Fallback Mode)\n\n${customMessage}\n\n* **Status**: Warning\n* **Open Ports**: ${activePorts.map(p => `${p.port}/${p.service}`).join(", ")}\n* **Recommendation**: Please update your **GEMINI_API_KEY** in the AI Studio Settings menu to restore advanced AI reasoning.`;
       }
 
       // 3. Return report & telemetry

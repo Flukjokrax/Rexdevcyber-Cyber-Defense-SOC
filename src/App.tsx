@@ -34,7 +34,15 @@ import {
   HardDrive,
   History,
   Trash2,
-  Clock
+  Clock,
+  FileDown,
+  FileJson,
+  Download,
+  Filter,
+  Layout,
+  BarChart3,
+  Layers,
+  Zap
 } from "lucide-react";
 import Header from "./components/Header";
 import ThreatMap from "./components/ThreatMap";
@@ -134,6 +142,8 @@ Security posture is mostly safe. Exposure is limited to low-severity version dis
     return defaultScanHistory;
   });
 
+  const [severityFilter, setSeverityFilter] = useState<string>("ALL");
+
   const [scanResult, setScanResult] = useState<SecurityScanResult | null>(() => {
     const saved = localStorage.getItem("rexdevcyber_scan_history");
     if (saved) {
@@ -176,6 +186,54 @@ Security posture is mostly safe. Exposure is limited to low-severity version dis
       }
       return current;
     });
+  };
+  
+  const handleExportTxt = (result: SecurityScanResult) => {
+    const content = `REXDEVCYBER SECURITY AUDIT REPORT
+====================================
+TARGET: ${result.target}
+TIMESTAMP: ${new Date(result.timestamp).toLocaleString()}
+STATUS: ${result.status?.toUpperCase() || "COMPLETED"}
+
+PORT TELEMETRY:
+${result.ports.map(p => `- ${p.port}/${p.service} (${p.status}): ${p.banner || "N/A"}`).join('\n')}
+
+VULNERABILITIES:
+${result.vulnerabilities.map(v => `
+[!] ${v.cve}: ${v.title}
+SEVERITY: ${v.severity}
+DESCRIPTION: ${v.description}
+REMEDIATION: ${v.remediation}
+`).join('\n')}
+
+EXECUTIVE SUMMARY:
+${result.remediationReport}
+
+------------------------------------
+REXDEVCYBER - Advanced Security Intelligence
+`;
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rexdevcyber_audit_${result.target.replace(/[^a-z0-9]/gi, '_')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportJson = (result: SecurityScanResult) => {
+    const data = JSON.stringify(result, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rexdevcyber_audit_${result.target.replace(/[^a-z0-9]/gi, '_')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const [scanTarget, setScanTarget] = useState("");
@@ -349,7 +407,8 @@ Security posture is mostly safe. Exposure is limited to low-severity version dis
       });
 
       if (!response.ok) {
-        throw new Error("Scan request blocked or refused by firewalled endpoint.");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Scan request blocked or refused by firewalled endpoint.");
       }
 
       const data: SecurityScanResult = await response.json();
@@ -989,30 +1048,336 @@ Security posture is mostly safe. Exposure is limited to low-severity version dis
                   </div>
                 )}
 
+                {/* Professional Services Portfolio View */}
+                {activeTab === "services" && (
+                  <div className="space-y-8 animate-in fade-in duration-700">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-900 pb-6">
+                      <div className="space-y-1">
+                        <h2 className="text-2xl font-display font-black text-white tracking-tight">PROFESSIONAL SERVICES</h2>
+                        <p className="text-xs font-mono text-slate-500 uppercase tracking-[0.2em]">Advanced Cybersecurity, Web Development & AI Solutions</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-mono text-emerald-400 bg-emerald-400/5 px-2 py-1 rounded border border-emerald-400/20">CAPACITY: 92%</span>
+                        <button className="bg-red-600 hover:bg-red-500 text-white font-mono font-bold text-[10px] px-4 py-2 rounded-lg transition-all shadow-[0_0_15px_rgba(255,32,32,0.2)]">
+                          REQUEST QUOTE
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {/* 1. Cybersecurity Services */}
+                      <div className="p-6 rounded-2xl border border-slate-900 bg-black/40 hover:bg-black/60 transition-all group">
+                        <div className="h-12 w-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                          <Shield className="h-6 w-6 text-red-500" />
+                        </div>
+                        <h3 className="text-lg font-bold text-white mb-2 font-mono">Cybersecurity</h3>
+                        <ul className="space-y-2">
+                          {[
+                            "Penetration Testing (Web, Mobile, API)",
+                            "Vulnerability Assessment (VAPT)",
+                            "Network Security Assessment",
+                            "Cloud Security (AWS, Azure, GCP)",
+                            "Security Audits",
+                            "Incident Response & Digital Forensics",
+                            "Threat Hunting & Malware Analysis",
+                            "Security Awareness Training"
+                          ].map(item => (
+                            <li key={item} className="text-[11px] text-slate-400 flex items-start gap-2">
+                              <span className="text-red-500 mt-0.5">▹</span> {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* 2. Development Services */}
+                      <div className="p-6 rounded-2xl border border-slate-900 bg-black/40 hover:bg-black/60 transition-all group">
+                        <div className="h-12 w-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                          <Code className="h-6 w-6 text-cyan-400" />
+                        </div>
+                        <h3 className="text-lg font-bold text-white mb-2 font-mono">Development</h3>
+                        <ul className="space-y-2">
+                          {[
+                            "Custom Website Development",
+                            "Web Application Development",
+                            "Mobile App Development",
+                            "REST API Development",
+                            "Automation Scripts (Python, Bash, PS)",
+                            "DevSecOps Integration",
+                            "CI/CD Pipeline Security"
+                          ].map(item => (
+                            <li key={item} className="text-[11px] text-slate-400 flex items-start gap-2">
+                              <span className="text-cyan-400 mt-0.5">▹</span> {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* 3. Infrastructure & Cloud */}
+                      <div className="p-6 rounded-2xl border border-slate-900 bg-black/40 hover:bg-black/60 transition-all group">
+                        <div className="h-12 w-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                          <Server className="h-6 w-6 text-purple-400" />
+                        </div>
+                        <h3 className="text-lg font-bold text-white mb-2 font-mono">Infrastructure</h3>
+                        <ul className="space-y-2">
+                          {[
+                            "Linux Server Administration",
+                            "Docker & Kubernetes Deployment",
+                            "VPN & Firewall Configuration",
+                            "Web Hosting & Domain Management",
+                            "Cloud Migration & Optimization"
+                          ].map(item => (
+                            <li key={item} className="text-[11px] text-slate-400 flex items-start gap-2">
+                              <span className="text-purple-400 mt-0.5">▹</span> {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* 4. AI & Automation */}
+                      <div className="p-6 rounded-2xl border border-slate-900 bg-black/40 hover:bg-black/60 transition-all group">
+                        <div className="h-12 w-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                          <Zap className="h-6 w-6 text-amber-400" />
+                        </div>
+                        <h3 className="text-lg font-bold text-white mb-2 font-mono">AI & Automation</h3>
+                        <ul className="space-y-2">
+                          {[
+                            "AI Chatbots & Virtual Assistants",
+                            "AI Security Assistant",
+                            "SOC Automation & Response",
+                            "Security Monitoring Dashboards",
+                            "Log Analysis & SIEM Integration"
+                          ].map(item => (
+                            <li key={item} className="text-[11px] text-slate-400 flex items-start gap-2">
+                              <span className="text-amber-400 mt-0.5">▹</span> {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* 5. Digital Services */}
+                      <div className="p-6 rounded-2xl border border-slate-900 bg-black/40 hover:bg-black/60 transition-all group">
+                        <div className="h-12 w-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                          <Layout className="h-6 w-6 text-emerald-400" />
+                        </div>
+                        <h3 className="text-lg font-bold text-white mb-2 font-mono">Digital Services</h3>
+                        <ul className="space-y-2">
+                          {[
+                            "Portfolio Website Design",
+                            "Corporate Website Development",
+                            "UI/UX Design & Prototyping",
+                            "SEO Optimization & Analytics",
+                            "Website Maintenance & Support"
+                          ].map(item => (
+                            <li key={item} className="text-[11px] text-slate-400 flex items-start gap-2">
+                              <span className="text-emerald-400 mt-0.5">▹</span> {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* 6. Consulting */}
+                      <div className="p-6 rounded-2xl border border-slate-900 bg-black/40 hover:bg-black/60 transition-all group">
+                        <div className="h-12 w-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                          <BarChart3 className="h-6 w-6 text-blue-400" />
+                        </div>
+                        <h3 className="text-lg font-bold text-white mb-2 font-mono">Consulting</h3>
+                        <ul className="space-y-2">
+                          {[
+                            "Cybersecurity Strategy & Roadmap",
+                            "Risk Assessment & Management",
+                            "Compliance Support (ISO, NIST, PCI)",
+                            "Startup Security Consulting",
+                            "Security Architecture Review"
+                          ].map(item => (
+                            <li key={item} className="text-[11px] text-slate-400 flex items-start gap-2">
+                              <span className="text-blue-400 mt-0.5">▹</span> {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Bottom CTA / Banner */}
+                    <div className="p-8 rounded-3xl border border-slate-900 bg-gradient-to-br from-slate-950 to-black relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-4 opacity-5">
+                        <Layers className="h-32 w-32" />
+                      </div>
+                      <div className="relative z-10 max-w-2xl space-y-4">
+                        <h3 className="text-xl font-bold text-white">Need a custom solution for your enterprise?</h3>
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                          REXDEVCYBER specializes in bridging the gap between cutting-edge development and rigorous security standards. Our team is ready to help you Secure, Build, and Innovate your next big project.
+                        </p>
+                        <div className="flex items-center gap-4 pt-2">
+                          <button className="px-6 py-2.5 bg-white text-black font-bold font-mono text-[10px] rounded-lg hover:bg-slate-200 transition-all">
+                            SCHEDULE DISCOVERY CALL
+                          </button>
+                          <span className="text-[10px] font-mono text-slate-500">Available Mon-Fri, 09:00 - 18:00 UTC</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* About Rexdevcyber View */}
+                {activeTab === "about" && (
+                  <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                    {/* Hero Branding */}
+                    <div className="relative p-12 rounded-[2rem] border border-slate-900 bg-gradient-to-br from-slate-950 via-black to-slate-950 overflow-hidden">
+                      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-soft-light"></div>
+                      <div className="relative z-10 text-center space-y-6">
+                        <motion.div 
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ duration: 0.8 }}
+                          className="inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-red-600/10 border border-red-600/20 mb-4"
+                        >
+                          <Shield className="h-10 w-10 text-red-600" />
+                        </motion.div>
+                        <h1 className="text-4xl md:text-6xl font-display font-black text-white tracking-tighter uppercase italic">
+                          REXDEV<span className="text-red-600">CYBER</span>
+                        </h1>
+                        <p className="text-sm font-mono text-slate-400 max-w-3xl mx-auto leading-relaxed tracking-wide">
+                          Rexdevcyber is a technology and cybersecurity brand focused on building secure, scalable, and innovative digital solutions. We combine cybersecurity expertise, software development, cloud technologies, and AI-powered automation to help businesses and individuals strengthen their digital presence while reducing cyber risks.
+                        </p>
+                        <div className="flex items-center justify-center gap-4 pt-4">
+                          <div className="h-[1px] w-12 bg-slate-800"></div>
+                          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-[0.4em]">Secure. Build. Innovate.</span>
+                          <div className="h-[1px] w-12 bg-slate-800"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                      {/* Left Column: Mission, Vision & Philosophy */}
+                      <div className="lg:col-span-2 space-y-8">
+                        <div className="p-8 rounded-2xl border border-slate-900 bg-black/40 backdrop-blur-sm space-y-8">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-4">
+                              <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                                <span className="h-8 w-1 bg-red-600 rounded-full"></span>
+                                MISSION
+                              </h3>
+                              <p className="text-sm text-slate-400 leading-relaxed">
+                                To provide advanced cybersecurity and software engineering solutions that empower organizations to innovate with confidence.
+                              </p>
+                            </div>
+
+                            <div className="space-y-4">
+                              <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                                <span className="h-8 w-1 bg-cyan-500 rounded-full"></span>
+                                VISION
+                              </h3>
+                              <p className="text-sm text-slate-400 leading-relaxed">
+                                To become a trusted global technology partner recognized for excellence in cybersecurity, secure software development, and digital innovation.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="pt-6 border-t border-slate-900 space-y-4">
+                            <h3 className="text-lg font-bold text-white font-mono">Our Approach</h3>
+                            <p className="text-sm text-slate-400 leading-relaxed italic">
+                              "At Rexdevcyber, security is integrated into every stage of development—from planning and design to deployment and continuous monitoring. Our approach emphasizes innovation, transparency, and industry best practices to build resilient digital environments."
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Core Values Grid */}
+                        <div className="space-y-4">
+                          <h4 className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-[0.25em] pl-2">CORE VALUES</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {[
+                              { title: "Security First", color: "bg-red-500/10 text-red-500 border-red-500/20" },
+                              { title: "Innovation", color: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" },
+                              { title: "Integrity", color: "bg-purple-500/10 text-purple-400 border-purple-500/20" },
+                              { title: "Excellence", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+                              { title: "Continuous Learning", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+                              { title: "Customer Success", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" }
+                            ].map((value) => (
+                              <div key={value.title} className={`p-4 rounded-xl border ${value.color} text-center font-mono font-bold text-[10px] tracking-wider uppercase group hover:scale-105 transition-transform cursor-default`}>
+                                {value.title}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right Column: Specialization List */}
+                      <div className="space-y-6">
+                        <div className="p-6 rounded-2xl border border-slate-900 bg-slate-950/50">
+                          <h4 className="text-xs font-mono font-bold text-slate-500 uppercase tracking-widest mb-6 pb-2 border-b border-slate-900">SPECIALIZATIONS</h4>
+                          <ul className="space-y-4">
+                            {[
+                              "Cybersecurity Assessments & Penetration Testing",
+                              "Vulnerability Assessment and Risk Analysis",
+                              "Secure Web & API Development",
+                              "Cloud Security & Infrastructure",
+                              "DevSecOps & Automation",
+                              "AI-Powered Security Solutions",
+                              "Digital Forensics & Incident Response",
+                              "Security Consulting & Compliance"
+                            ].map((spec) => (
+                              <li key={spec} className="flex items-center gap-3 group">
+                                <div className="h-1.5 w-1.5 rounded-full bg-red-600 group-hover:scale-150 transition-transform"></div>
+                                <span className="text-[11px] text-slate-400 font-mono group-hover:text-white transition-colors leading-tight">{spec}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div className="p-6 rounded-2xl border border-red-900/30 bg-red-950/5 text-center space-y-4">
+                          <p className="text-[10px] font-mono text-red-400/80 uppercase">Est.</p>
+                          <p className="text-2xl font-display font-black text-white">2024</p>
+                          <p className="text-[9px] font-mono text-slate-500 leading-tight">Empowering organizations to innovate with confidence.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* AI Cyber Scanner Panel */}
                 {activeTab === "scanner" && (
                   <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
                     {/* Recent Audit History Sidebar */}
                     <div className="lg:col-span-1 space-y-4">
                       <div className="p-4 rounded-xl border border-slate-900 bg-black/60 backdrop-blur-md font-mono relative overflow-hidden shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
-                        <div className="flex items-center justify-between border-b border-slate-950 pb-3 mb-3">
-                          <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                            <History className="h-4 w-4 shrink-0 animate-pulse" />
-                            RECENT AUDITS
-                          </span>
-                          <span className="text-[9px] text-slate-500 font-bold px-2 py-0.5 rounded bg-slate-950/80 border border-slate-900">
-                            {scanHistory.length}
-                          </span>
+                        <div className="flex flex-col gap-3 border-b border-slate-950 pb-3 mb-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                              <History className="h-4 w-4 shrink-0 animate-pulse" />
+                              RECENT AUDITS
+                            </span>
+                            <span className="text-[9px] text-slate-500 font-bold px-2 py-0.5 rounded bg-slate-950/80 border border-slate-900">
+                              {scanHistory.filter(item => severityFilter === "ALL" || getMaxSeverity(item) === severityFilter).length} / {scanHistory.length}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 bg-slate-950/50 rounded-lg border border-slate-900 px-2 py-1.5">
+                            <Filter className="h-3 w-3 text-slate-500" />
+                            <select 
+                              value={severityFilter}
+                              onChange={(e) => setSeverityFilter(e.target.value)}
+                              className="bg-transparent text-[10px] text-slate-400 font-mono outline-none w-full cursor-pointer hover:text-white transition-colors"
+                            >
+                              <option value="ALL">ALL LEVELS</option>
+                              <option value="CRITICAL">CRITICAL</option>
+                              <option value="HIGH">HIGH</option>
+                              <option value="MEDIUM">MEDIUM</option>
+                              <option value="LOW">LOW</option>
+                              <option value="SECURE">SECURE</option>
+                            </select>
+                          </div>
                         </div>
 
                         <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-900 scrollbar-track-transparent">
-                          {scanHistory.length === 0 ? (
+                          {scanHistory.filter(item => severityFilter === "ALL" || getMaxSeverity(item) === severityFilter).length === 0 ? (
                             <div className="py-8 text-center text-slate-500 text-[10px] space-y-2">
                               <Info className="h-6 w-6 text-slate-700 mx-auto" />
-                              <p>No previous audits recorded.</p>
+                              <p>{severityFilter === "ALL" ? "No previous audits recorded." : `No audits found with ${severityFilter} severity.`}</p>
                             </div>
                           ) : (
-                            scanHistory.map((item, idx) => {
+                            scanHistory
+                              .filter(item => severityFilter === "ALL" || getMaxSeverity(item) === severityFilter)
+                              .map((item, idx) => {
                               const maxSev = getMaxSeverity(item);
                               const isSelected = scanResult?.target === item.target && scanResult?.timestamp === item.timestamp;
                               
@@ -1382,7 +1747,21 @@ Security posture is mostly safe. Exposure is limited to low-severity version dis
                         <div className="lg:col-span-2 rounded-xl border border-slate-900 bg-black/60 backdrop-blur-md p-5">
                           <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider mb-4 border-b border-slate-900 pb-2 flex items-center justify-between">
                             <span>VULNERABILITY ASSESSMENT REPORT</span>
-                            <span className="text-[10px] text-red-400 font-bold">AI COMPILED</span>
+                            <div className="flex items-center gap-2">
+                              <button 
+                                onClick={() => handleExportTxt(scanResult)}
+                                className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-950 hover:bg-slate-900 border border-slate-900 hover:border-red-500/30 rounded text-[9px] text-slate-400 hover:text-red-400 transition-all cursor-pointer font-bold"
+                              >
+                                <FileDown className="h-3 w-3" /> TXT
+                              </button>
+                              <button 
+                                onClick={() => handleExportJson(scanResult)}
+                                className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-950 hover:bg-slate-900 border border-slate-900 hover:border-cyan-500/30 rounded text-[9px] text-slate-400 hover:text-cyan-400 transition-all cursor-pointer font-bold"
+                              >
+                                <FileJson className="h-3 w-3" /> JSON
+                              </button>
+                              <span className="text-[10px] text-red-400 font-bold ml-2">AI COMPILED</span>
+                            </div>
                           </h4>
 
                           <div className="prose prose-invert max-w-none text-xs text-slate-300 leading-relaxed font-mono">

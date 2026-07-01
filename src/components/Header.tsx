@@ -100,7 +100,7 @@ export default function Header({ onNavClick, activeTab }: HeaderProps) {
             <div className="font-display font-black text-lg sm:text-xl tracking-[0.15em] text-white leading-none">
               REXDEV<span className="text-[#ff2020]">CYBER</span>
             </div>
-            <span className="text-[9px] font-mono tracking-widest text-slate-500 mt-1 uppercase font-bold">SECURE • DEVELOP • DEFEND</span>
+            <span className="text-[9px] font-mono tracking-widest text-slate-500 mt-1 uppercase font-bold">SECURE • BUILD • INNOVATE</span>
           </div>
         </div>
 
@@ -132,7 +132,7 @@ export default function Header({ onNavClick, activeTab }: HeaderProps) {
         <div className="hidden md:flex items-center gap-4">
           <div className="flex items-center gap-2">
             <a
-              href="https://github.com/rexdevcyber"
+              href="https://github.com/rexdevcyber/rexrecon"
               target="_blank"
               rel="noreferrer"
               className="rounded-lg p-2 text-slate-400 hover:bg-slate-950 hover:text-white transition-all border border-transparent hover:border-slate-800"
@@ -209,7 +209,7 @@ export default function Header({ onNavClick, activeTab }: HeaderProps) {
           </nav>
 
           <div className="mt-4 flex items-center justify-around border-t border-slate-900 pt-4">
-            <a href="https://github.com/rexdevcyber" className="text-slate-400 hover:text-white">
+            <a href="https://github.com/rexdevcyber/rexrecon" className="text-slate-400 hover:text-white">
               <Github className="h-5 w-5" />
             </a>
             <a href="https://x.com/rexdevcyber" className="text-slate-400 hover:text-white">
