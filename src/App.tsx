@@ -42,8 +42,14 @@ import {
   Layout,
   BarChart3,
   Layers,
-  Zap
+  Zap,
+  Mail,
+  Loader2,
+  CheckCircle2,
+  AlertCircle
 } from "lucide-react";
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from './lib/firebase';
 import Header from "./components/Header";
 import ThreatMap from "./components/ThreatMap";
 import Terminal from "./components/Terminal";
@@ -141,6 +147,34 @@ Security posture is mostly safe. Exposure is limited to low-severity version dis
     }
     return defaultScanHistory;
   });
+
+  // Contact Form State
+  const [contactForm, setContactForm] = useState({
+    name: "",
+    email: "",
+    message: ""
+  });
+  const [contactStatus, setContactStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactForm.name || !contactForm.email || !contactForm.message) return;
+
+    setContactStatus("submitting");
+    try {
+      await addDoc(collection(db, "contacts"), {
+        ...contactForm,
+        createdAt: serverTimestamp()
+      });
+      setContactStatus("success");
+      setContactForm({ name: "", email: "", message: "" });
+      setTimeout(() => setContactStatus("idle"), 5000);
+    } catch (error) {
+      console.error("Error submitting contact form:", error);
+      setContactStatus("error");
+      setTimeout(() => setContactStatus("idle"), 5000);
+    }
+  };
 
   const [severityFilter, setSeverityFilter] = useState<string>("ALL");
 
@@ -473,18 +507,12 @@ REXDEVCYBER - Advanced Security Intelligence
 
   const handleNavClick = (tab: string) => {
     setActiveTab(tab);
-    if (tab === "home") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } else if (tab === "about") {
+    // Always scroll to top when switching main views
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    
+    // Additional sub-section scrolling if needed when on home tab
+    if (tab === "about" && document.getElementById("about-section")) {
       document.getElementById("about-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    } else if (tab === "services") {
-      document.getElementById("services-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    } else if (tab === "projects") {
-      document.getElementById("projects-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    } else if (tab === "tools") {
-      document.getElementById("soc-tools-suite")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    } else if (tab === "contact") {
-      document.getElementById("contact-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
@@ -494,7 +522,7 @@ REXDEVCYBER - Advanced Security Intelligence
       <ParticlesBg />
 
       {/* Premium Header Component */}
-      <Header activeTab={activeTab} onNavClick={setActiveTab} />
+      <Header activeTab={activeTab} onNavClick={handleNavClick} />
 
       {/* Main Grid Viewport */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col lg:flex-row gap-8 relative z-10">
@@ -673,11 +701,14 @@ REXDEVCYBER - Advanced Security Intelligence
           {/* Interactive Navigation Content tabs */}
           <div className="border border-slate-900 bg-black/50 backdrop-blur-md rounded-xl p-1.5 flex gap-1.5 overflow-x-auto">
             {[
-              { id: "home", label: "Threat Map & Feed", icon: Globe },
-              { id: "terminal", label: "SOC CLI Console", icon: TerminalIcon },
-              { id: "projects", label: "Repositories & Code", icon: FileCode },
-              { id: "scanner", label: "AI Cyber Auditing", icon: ShieldCheck },
-              { id: "drive", label: "Secure Drive Vault", icon: HardDrive },
+              { id: "home", label: "Dashboard", icon: Globe },
+              { id: "terminal", label: "SOC Console", icon: TerminalIcon },
+              { id: "about", label: "About Brand", icon: Info },
+              { id: "tools", label: "Tech Stack", icon: Cpu },
+              { id: "services", label: "Services", icon: Layout },
+              { id: "projects", label: "Projects", icon: FileCode },
+              { id: "scanner", label: "AI Scanner", icon: ShieldCheck },
+              { id: "contact", label: "Contact", icon: Mail },
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -1329,6 +1360,323 @@ REXDEVCYBER - Advanced Security Intelligence
                           <p className="text-2xl font-display font-black text-white">2024</p>
                           <p className="text-[9px] font-mono text-slate-500 leading-tight">Empowering organizations to innovate with confidence.</p>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tools & Technologies View */}
+                {activeTab === "tools" && (
+                  <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-900 pb-8">
+                      <div className="space-y-2">
+                        <h2 className="text-3xl font-display font-black text-white tracking-tighter uppercase italic">
+                          TOOLS <span className="text-red-600">&</span> TECHNOLOGIES
+                        </h2>
+                        <p className="text-[10px] font-mono text-slate-500 uppercase tracking-[0.3em]">Advanced Stack & Security Arsenal</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="h-2 w-2 rounded-full bg-red-600 animate-pulse"></div>
+                        <span className="text-[9px] font-mono text-slate-400">UPDATED: 2024.Q4</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {/* 1. Cybersecurity Arsenal */}
+                      <div className="p-6 rounded-2xl border border-slate-900 bg-black/40 hover:bg-black/60 transition-all group overflow-hidden relative">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                          <ShieldAlert className="h-24 w-24" />
+                        </div>
+                        <div className="flex items-center gap-4 mb-6">
+                          <div className="h-10 w-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Shield className="h-5 w-5 text-red-500" />
+                          </div>
+                          <h3 className="text-lg font-bold text-white font-mono">Cybersecurity</h3>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            "Kali Linux", "Metasploit", "Burp Suite", "Nmap", "Wireshark", 
+                            "OWASP ZAP", "Nessus", "OpenVAS", "Nikto", "SQLMap", 
+                            "Hydra", "John the Ripper", "Hashcat", "Snort", "Splunk"
+                          ].map(tool => (
+                            <span key={tool} className="text-[10px] font-mono px-2 py-1 bg-slate-950/80 border border-slate-900 text-slate-400 rounded-md group-hover:border-red-500/30 group-hover:text-red-400 transition-all">
+                              {tool}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 2. Languages & Development */}
+                      <div className="p-6 rounded-2xl border border-slate-900 bg-black/40 hover:bg-black/60 transition-all group overflow-hidden relative">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                          <Code className="h-24 w-24" />
+                        </div>
+                        <div className="flex items-center gap-4 mb-6">
+                          <div className="h-10 w-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <FileCode className="h-5 w-5 text-cyan-400" />
+                          </div>
+                          <h3 className="text-lg font-bold text-white font-mono">Programming</h3>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            "Python", "TypeScript", "JavaScript", "PHP", "Java", "C++", 
+                            "Go", "Rust", "Bash", "PowerShell"
+                          ].map(lang => (
+                            <span key={lang} className="text-[10px] font-mono px-2 py-1 bg-slate-950/80 border border-slate-900 text-slate-400 rounded-md group-hover:border-cyan-500/30 group-hover:text-cyan-400 transition-all">
+                              {lang}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 3. Web Frameworks */}
+                      <div className="p-6 rounded-2xl border border-slate-900 bg-black/40 hover:bg-black/60 transition-all group overflow-hidden relative">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                          <Globe className="h-24 w-24" />
+                        </div>
+                        <div className="flex items-center gap-4 mb-6">
+                          <div className="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Layout className="h-5 w-5 text-emerald-400" />
+                          </div>
+                          <h3 className="text-lg font-bold text-white font-mono">Frontend & Backend</h3>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            "React", "Next.js", "Vue.js", "Node.js", "Express.js", 
+                            "Django", "FastAPI", "Laravel", "Tailwind CSS", "Bootstrap"
+                          ].map(web => (
+                            <span key={web} className="text-[10px] font-mono px-2 py-1 bg-slate-950/80 border border-slate-900 text-slate-400 rounded-md group-hover:border-emerald-500/30 group-hover:text-emerald-400 transition-all">
+                              {web}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 4. Databases & Storage */}
+                      <div className="p-6 rounded-2xl border border-slate-900 bg-black/40 hover:bg-black/60 transition-all group overflow-hidden relative">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                          <Database className="h-24 w-24" />
+                        </div>
+                        <div className="flex items-center gap-4 mb-6">
+                          <div className="h-10 w-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Database className="h-5 w-5 text-purple-400" />
+                          </div>
+                          <h3 className="text-lg font-bold text-white font-mono">Databases</h3>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            "PostgreSQL", "MySQL", "MongoDB", "SQLite", "Redis", "Firebase"
+                          ].map(db => (
+                            <span key={db} className="text-[10px] font-mono px-2 py-1 bg-slate-950/80 border border-slate-900 text-slate-400 rounded-md group-hover:border-purple-500/30 group-hover:text-purple-400 transition-all">
+                              {db}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 5. Cloud & Infrastructure */}
+                      <div className="p-6 rounded-2xl border border-slate-900 bg-black/40 hover:bg-black/60 transition-all group overflow-hidden relative">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                          <Server className="h-24 w-24" />
+                        </div>
+                        <div className="flex items-center gap-4 mb-6">
+                          <div className="h-10 w-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Server className="h-5 w-5 text-blue-400" />
+                          </div>
+                          <h3 className="text-lg font-bold text-white font-mono">Infrastructure</h3>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            "AWS", "Azure", "GCP", "Cloudflare", "Docker", "Kubernetes", 
+                            "Terraform", "Ansible", "Nginx", "Apache"
+                          ].map(cloud => (
+                            <span key={cloud} className="text-[10px] font-mono px-2 py-1 bg-slate-950/80 border border-slate-900 text-slate-400 rounded-md group-hover:border-blue-500/30 group-hover:text-blue-400 transition-all">
+                              {cloud}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 6. AI & Monitoring */}
+                      <div className="p-6 rounded-2xl border border-slate-900 bg-black/40 hover:bg-black/60 transition-all group overflow-hidden relative">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                          <Zap className="h-24 w-24" />
+                        </div>
+                        <div className="flex items-center gap-4 mb-6">
+                          <div className="h-10 w-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Sparkles className="h-5 w-5 text-amber-400" />
+                          </div>
+                          <h3 className="text-lg font-bold text-white font-mono">AI & Monitoring</h3>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            "OpenAI", "Ollama", "LangChain", "n8n", "Make", 
+                            "Grafana", "Prometheus", "ELK Stack", "Uptime Kuma"
+                          ].map(ai => (
+                            <span key={ai} className="text-[10px] font-mono px-2 py-1 bg-slate-950/80 border border-slate-900 text-slate-400 rounded-md group-hover:border-amber-500/30 group-hover:text-amber-400 transition-all">
+                              {ai}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-8 rounded-2xl border border-slate-900 bg-slate-950/20 flex flex-col md:flex-row items-center gap-8">
+                      <div className="flex-1 space-y-4">
+                        <h4 className="text-xl font-bold text-white">Versatility & Selection</h4>
+                        <p className="text-xs text-slate-400 leading-relaxed max-w-2xl">
+                          We select the right technologies for each project, combining secure development practices, automation, cloud-native architecture, and continuous monitoring to deliver resilient, scalable, and future-ready solutions.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <div className="text-center">
+                          <p className="text-2xl font-black text-white">50+</p>
+                          <p className="text-[9px] font-mono text-slate-500 uppercase">Tools Deployed</p>
+                        </div>
+                        <div className="h-8 w-px bg-slate-900"></div>
+                        <div className="text-center">
+                          <p className="text-2xl font-black text-white">100%</p>
+                          <p className="text-[9px] font-mono text-slate-500 uppercase">Secure Stack</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Contact View */}
+                {activeTab === "contact" && (
+                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                    <div className="p-12 rounded-[2rem] border border-slate-900 bg-gradient-to-br from-slate-950 via-black to-slate-950 text-center space-y-6">
+                      <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-red-600/10 border border-red-600/20 mb-2">
+                        <Mail className="h-8 w-8 text-red-600" />
+                      </div>
+                      <h2 className="text-3xl md:text-5xl font-display font-black text-white tracking-tighter uppercase italic">
+                        GET IN <span className="text-red-600">TOUCH</span>
+                      </h2>
+                      <p className="text-slate-400 max-w-2xl mx-auto font-mono text-sm leading-relaxed">
+                        Have a project in mind or need a security audit? Dispatches encrypted signals to the REXDEVCYBER core inbox.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      <div className="p-8 rounded-2xl border border-slate-900 bg-black/40 backdrop-blur-sm space-y-8">
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-bold text-white font-mono flex items-center gap-3">
+                            <span className="h-6 w-1 bg-red-600 rounded-full"></span>
+                            CONTACT INFORMATION
+                          </h3>
+                          <div className="space-y-6 pt-4">
+                            <div className="flex items-center gap-4 group">
+                              <div className="h-10 w-10 rounded-lg bg-slate-950 border border-slate-900 flex items-center justify-center text-slate-500 group-hover:text-red-500 transition-colors">
+                                <Mail className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-mono text-slate-500 uppercase">Email</p>
+                                <p className="text-sm text-white font-mono">contact@rexdevcyber.com</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4 group">
+                              <div className="h-10 w-10 rounded-lg bg-slate-950 border border-slate-900 flex items-center justify-center text-slate-500 group-hover:text-cyan-400 transition-colors">
+                                <Twitter className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-mono text-slate-500 uppercase">Twitter / X</p>
+                                <p className="text-sm text-white font-mono">@rexdevcyber</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4 group">
+                              <div className="h-10 w-10 rounded-lg bg-slate-950 border border-slate-900 flex items-center justify-center text-slate-500 group-hover:text-purple-400 transition-colors">
+                                <Github className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-mono text-slate-500 uppercase">GitHub</p>
+                                <p className="text-sm text-white font-mono">github.com/rexdevcyber</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="p-6 rounded-xl border border-red-900/20 bg-red-950/5">
+                          <p className="text-[10px] font-mono text-slate-400 leading-relaxed italic">
+                            "Secure. Build. Innovate. We are ready to help you navigate the complex digital landscape with confidence."
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="p-8 rounded-2xl border border-slate-900 bg-black/40 backdrop-blur-sm">
+                        <form 
+                          onSubmit={handleContactSubmit}
+                          className="space-y-5"
+                        >
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-mono text-slate-500 uppercase font-bold px-1">Callsign / Name</label>
+                            <input 
+                              type="text" 
+                              placeholder="Enter your name"
+                              value={contactForm.name}
+                              onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
+                              required
+                              disabled={contactStatus === "submitting"}
+                              className="w-full bg-slate-950 border border-slate-900 rounded-xl px-4 py-3 text-white text-sm focus:border-red-600 outline-none transition-all font-mono disabled:opacity-50"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-mono text-slate-500 uppercase font-bold px-1">Secure Email</label>
+                            <input 
+                              type="email" 
+                              placeholder="your@email.com"
+                              value={contactForm.email}
+                              onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                              required
+                              disabled={contactStatus === "submitting"}
+                              className="w-full bg-slate-950 border border-slate-900 rounded-xl px-4 py-3 text-white text-sm focus:border-red-600 outline-none transition-all font-mono disabled:opacity-50"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-mono text-slate-500 uppercase font-bold px-1">Message Body</label>
+                            <textarea 
+                              rows={4}
+                              placeholder="State your request..."
+                              value={contactForm.message}
+                              onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                              required
+                              disabled={contactStatus === "submitting"}
+                              className="w-full bg-slate-950 border border-slate-900 rounded-xl px-4 py-3 text-white text-sm focus:border-red-600 outline-none transition-all font-mono resize-none disabled:opacity-50"
+                            />
+                          </div>
+                          
+                          {contactStatus === "success" && (
+                            <div className="flex items-center gap-2 text-emerald-400 font-mono text-[10px] bg-emerald-500/5 p-3 rounded-lg border border-emerald-500/20 animate-in fade-in zoom-in duration-300">
+                              <CheckCircle2 className="h-4 w-4" />
+                              SECURE TRANSMISSION CONFIRMED: AES-256 DISPATCH SUCCESSFUL
+                            </div>
+                          )}
+
+                          {contactStatus === "error" && (
+                            <div className="flex items-center gap-2 text-red-500 font-mono text-[10px] bg-red-500/5 p-3 rounded-lg border border-red-500/20 animate-in fade-in zoom-in duration-300">
+                              <AlertCircle className="h-4 w-4" />
+                              TRANSMISSION FAILED: UPLINK ERROR DETECTED
+                            </div>
+                          )}
+
+                          <button 
+                            type="submit"
+                            disabled={contactStatus === "submitting"}
+                            className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-mono font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(255,32,32,0.15)] flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {contactStatus === "submitting" ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                ENCRYPTING & DISPATCHING...
+                              </>
+                            ) : (
+                              <>
+                                <Lock className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                                DISPATCH ENCRYPTED MESSAGE
+                              </>
+                            )}
+                          </button>
+                        </form>
                       </div>
                     </div>
                   </div>
