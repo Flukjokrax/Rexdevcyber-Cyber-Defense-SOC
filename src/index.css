@@ -1,0 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Poppins:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Poppins", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Orbitron", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Custom glow adjustments and smooth transitions */
+.glow-red {
+  box-shadow: 0 0 20px rgba(255, 32, 32, 0.15);
+}
+.glow-red-strong {
+  box-shadow: 0 0 35px rgba(255, 32, 32, 0.4);
+}
+.border-glow-red {
+  border-color: rgba(255, 32, 32, 0.25);
+}
+.border-glow-red:hover {
+  border-color: rgba(255, 32, 32, 0.6);
+  box-shadow: 0 0 15px rgba(255, 32, 32, 0.15);
+}
+
+/* Custom scrollbar matching futuristic dashboard styling */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #05070d;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f1212;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ff2020;
+}

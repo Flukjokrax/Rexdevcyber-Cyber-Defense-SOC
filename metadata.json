@@ -1,0 +1,6 @@
+{
+  "name": "Rexdevcyber Cyber Defense SOC",
+  "description": "Futuristic AI Cyber Defense SOC dashboard and OSINT vulnerability scanner with an elegant dark theme and interactive terminal",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
