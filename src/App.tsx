@@ -31,7 +31,10 @@ import {
   Bug,
   Braces,
   Settings,
-  HardDrive
+  HardDrive,
+  History,
+  Trash2,
+  Clock
 } from "lucide-react";
 import Header from "./components/Header";
 import ThreatMap from "./components/ThreatMap";
@@ -53,10 +56,130 @@ export default function App() {
   });
   
   // Custom states for interactive scanner
+  const defaultScanHistory: SecurityScanResult[] = [
+    {
+      target: "vulnerable-api.internal",
+      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      ports: [
+        { port: 22, service: "SSH", status: "open", banner: "OpenSSH 8.2p1 Ubuntu-4ubuntu0.5" },
+        { port: 80, service: "HTTP", status: "open", banner: "Apache/2.4.41" },
+        { port: 3000, service: "NodeJS", status: "open", banner: "Express/Vite Dev" }
+      ],
+      vulnerabilities: [
+        {
+          cve: "CVE-2024-9102",
+          title: "SQL Injection on Auth Entrypoint",
+          severity: "HIGH",
+          description: "Parameter login handler allows raw SQL statements via injection payload, leading to authentication bypass.",
+          remediation: "Implement prepared statements and parameterized queries for all database connection drivers."
+        },
+        {
+          cve: "CVE-2024-4112",
+          title: "Outdated SSH Host Key Exchange Weakness",
+          severity: "MEDIUM",
+          description: "SSH daemon supports obsolete cipher suites risking decryption or session hijacking under specific OSINT criteria.",
+          remediation: "Update /etc/ssh/sshd_config to allow only strong modern HMACs and cipher algorithms."
+        }
+      ],
+      remediationReport: `### Executive Summary: vulnerable-api.internal
+Our AI security auditor has detected a critical injection vector on the authentication route. Immediate containment is advised.
+
+### Vulnerability Assessment
+- **SQL Injection**: Allows unauthorized attackers to bypass authentication layers.
+- **SSH Weakness**: Outdated key exchange configurations.
+
+### Defense Action Plan
+1. **Apply Prepared Statements**: Update backend authentication router with parameterization.
+2. **Harder SSH Settings**: Enforce modern SSH protocols.`,
+      status: "completed"
+    },
+    {
+      target: "corporate-sandbox.net",
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      ports: [
+        { port: 80, service: "HTTP", status: "open", banner: "nginx/1.18.0" },
+        { port: 443, service: "HTTPS", status: "open", banner: "nginx/1.18.0" }
+      ],
+      vulnerabilities: [
+        {
+          cve: "CVE-2023-35123",
+          title: "HTTP Header Information Disclosure",
+          severity: "LOW",
+          description: "Web server exposes exact backend version details in response headers (nginx/1.18.0).",
+          remediation: "Configure ServerTokens off in nginx configurations."
+        }
+      ],
+      remediationReport: `### Executive Summary: corporate-sandbox.net
+Security posture is mostly safe. Exposure is limited to low-severity version disclosure on public endpoints.
+
+### Vulnerability Assessment
+- **Information Disclosure**: HTTP header exposes explicit service signatures.
+
+### Defense Action Plan
+1. **Disable Server Banners**: Turn off detailed version telemetry in nginx configurations.`,
+      status: "completed"
+    }
+  ];
+
+  const [scanHistory, setScanHistory] = useState<SecurityScanResult[]>(() => {
+    const saved = localStorage.getItem("rexdevcyber_scan_history");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.map((item: any) => ({ ...item, status: item.status || "completed" }));
+      } catch (e) {
+        return defaultScanHistory;
+      }
+    }
+    return defaultScanHistory;
+  });
+
+  const [scanResult, setScanResult] = useState<SecurityScanResult | null>(() => {
+    const saved = localStorage.getItem("rexdevcyber_scan_history");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed[0] || null;
+      } catch (e) {
+        return defaultScanHistory[0];
+      }
+    }
+    return defaultScanHistory[0];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("rexdevcyber_scan_history", JSON.stringify(scanHistory));
+  }, [scanHistory]);
+
+  const getMaxSeverity = (res: SecurityScanResult) => {
+    if (!res.vulnerabilities || res.vulnerabilities.length === 0) return "SECURE";
+    const severities = res.vulnerabilities.map(v => v.severity);
+    if (severities.includes("CRITICAL")) return "CRITICAL";
+    if (severities.includes("HIGH")) return "HIGH";
+    if (severities.includes("MEDIUM")) return "MEDIUM";
+    if (severities.includes("LOW")) return "LOW";
+    return "SECURE";
+  };
+
+  const handleDeleteHistoryItem = (itemToDelete: SecurityScanResult) => {
+    const confirmed = window.confirm(`[MANDATE] Are you sure you want to delete the scan report for "${itemToDelete.target}" from your SOC audit history?`);
+    if (!confirmed) return;
+    
+    setScanHistory(prev => {
+      const updated = prev.filter(item => !(item.target === itemToDelete.target && item.timestamp === itemToDelete.timestamp));
+      return updated;
+    });
+
+    setScanResult(current => {
+      if (current && current.target === itemToDelete.target && current.timestamp === itemToDelete.timestamp) {
+        return null;
+      }
+      return current;
+    });
+  };
+
   const [scanTarget, setScanTarget] = useState("");
   const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<SecurityScanResult | null>(null);
-  const [scanHistory, setScanHistory] = useState<SecurityScanResult[]>([]);
   const [scanProgress, setScanProgress] = useState(0);
   const [scanStage, setScanStage] = useState<"Port Enumeration" | "Vulnerability Matching" | "Remediation Generation" | "Completed" | "">("");
   const [liveScanLogs, setLiveScanLogs] = useState<string[]>([]);
@@ -128,6 +251,28 @@ export default function App() {
       "[SYSTEM] Establishing socket handshake with core SOC layer...",
       "[SYSTEM] Authorization key validated. Commencing scanner engine."
     ]);
+
+    const scanTimestamp = new Date().toISOString();
+    const pendingItem: SecurityScanResult = {
+      target: targetToScan,
+      timestamp: scanTimestamp,
+      ports: [],
+      vulnerabilities: [],
+      remediationReport: "",
+      status: "pending"
+    };
+    setScanHistory(prev => [pendingItem, ...prev]);
+
+    // Transition to running state shortly after initiation
+    setTimeout(() => {
+      setScanHistory(prev =>
+        prev.map(item =>
+          item.target === targetToScan && item.timestamp === scanTimestamp
+            ? { ...item, status: "running" as const }
+            : item
+        )
+      );
+    }, 1200);
 
     // Pre-allocate diagnostic logs to progressively print
     const logPool = {
@@ -220,8 +365,25 @@ export default function App() {
           "[SYSTEM] Mitigation playbook built.", 
           "[SYSTEM] Audit scan successfully completed. Displaying report."
         ]);
-        setScanResult(data);
-        setScanHistory((prev) => [data, ...prev]);
+
+        const completedData: SecurityScanResult = {
+          ...data,
+          status: "completed"
+        };
+
+        setScanResult(completedData);
+        setScanHistory((prev) => {
+          const hasPlaceholder = prev.some(item => item.target === targetToScan && (item.status === "pending" || item.status === "running"));
+          if (hasPlaceholder) {
+            return prev.map(item => 
+              item.target === targetToScan && (item.status === "pending" || item.status === "running")
+                ? completedData
+                : item
+            );
+          } else {
+            return [completedData, ...prev.filter(item => item.target !== targetToScan)];
+          }
+        });
         setScanning(false);
       };
 
@@ -246,6 +408,7 @@ export default function App() {
       setScanning(false);
       console.error(err);
       alert(err.message || "An error occurred while running the security audit.");
+      setScanHistory((prev) => prev.filter(item => !(item.target === targetToScan && (item.status === "pending" || item.status === "running"))));
     }
   };
 
@@ -828,8 +991,120 @@ export default function App() {
 
                 {/* AI Cyber Scanner Panel */}
                 {activeTab === "scanner" && (
-                  <div className="space-y-6">
-                    <div className="p-6 rounded-xl border border-slate-900 bg-black/60 backdrop-blur-md relative overflow-hidden">
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+                    {/* Recent Audit History Sidebar */}
+                    <div className="lg:col-span-1 space-y-4">
+                      <div className="p-4 rounded-xl border border-slate-900 bg-black/60 backdrop-blur-md font-mono relative overflow-hidden shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+                        <div className="flex items-center justify-between border-b border-slate-950 pb-3 mb-3">
+                          <span className="text-[10px] text-red-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                            <History className="h-4 w-4 shrink-0 animate-pulse" />
+                            RECENT AUDITS
+                          </span>
+                          <span className="text-[9px] text-slate-500 font-bold px-2 py-0.5 rounded bg-slate-950/80 border border-slate-900">
+                            {scanHistory.length}
+                          </span>
+                        </div>
+
+                        <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-900 scrollbar-track-transparent">
+                          {scanHistory.length === 0 ? (
+                            <div className="py-8 text-center text-slate-500 text-[10px] space-y-2">
+                              <Info className="h-6 w-6 text-slate-700 mx-auto" />
+                              <p>No previous audits recorded.</p>
+                            </div>
+                          ) : (
+                            scanHistory.map((item, idx) => {
+                              const maxSev = getMaxSeverity(item);
+                              const isSelected = scanResult?.target === item.target && scanResult?.timestamp === item.timestamp;
+                              
+                              let badgeColor = "bg-emerald-950/20 text-emerald-400 border border-emerald-900/30";
+                              let badgeText = maxSev;
+
+                              if (item.status === "pending") {
+                                badgeColor = "bg-amber-950/25 text-amber-500 border border-amber-900/40 animate-pulse";
+                                badgeText = "PENDING";
+                              } else if (item.status === "running") {
+                                badgeColor = "bg-cyan-950/25 text-cyan-400 border border-cyan-900/40 animate-pulse";
+                                badgeText = "RUNNING";
+                              } else {
+                                if (maxSev === "CRITICAL") badgeColor = "bg-red-950/40 text-red-500 border border-red-900/40";
+                                else if (maxSev === "HIGH") badgeColor = "bg-red-950/20 text-[#ff2020] border border-red-900/30";
+                                else if (maxSev === "MEDIUM") badgeColor = "bg-amber-950/20 text-amber-400 border border-amber-900/30";
+                                else if (maxSev === "LOW") badgeColor = "bg-cyan-950/20 text-cyan-400 border border-cyan-900/30";
+                              }
+
+                              return (
+                                <div
+                                  key={`${item.target}-${item.timestamp}-${idx}`}
+                                  className={`group relative p-3 rounded-lg border text-left transition-all duration-200 ${
+                                    isSelected 
+                                      ? "border-[#ff2020]/50 bg-red-950/5 shadow-[0_0_12px_rgba(255,32,32,0.05)]" 
+                                      : "border-slate-950 bg-[#05070d]/40 hover:border-slate-800 hover:bg-[#05070d]/80"
+                                  } ${
+                                    item.status === "pending" || item.status === "running"
+                                      ? "border-cyan-500/30 bg-cyan-950/5 shadow-[0_0_10px_rgba(6,182,212,0.1)] animate-pulse"
+                                      : scanning 
+                                        ? "opacity-50 pointer-events-none" 
+                                        : "cursor-pointer"
+                                  }`}
+                                  onClick={() => {
+                                    if (!scanning && item.status !== "pending" && item.status !== "running") {
+                                      setScanResult(item);
+                                      setScanTarget(item.target);
+                                    }
+                                  }}
+                                >
+                                  <div className="flex items-start justify-between gap-1.5 mb-1">
+                                    <span className="text-[11px] font-bold text-white truncate max-w-[120px] block group-hover:text-[#ff2020] transition-colors">
+                                      {item.target}
+                                    </span>
+                                    <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase ${badgeColor} shrink-0`}>
+                                      {badgeText}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-center justify-between text-[9px] text-slate-500 mt-1.5">
+                                    <span className="flex items-center gap-1">
+                                      <Clock className="h-3.5 w-3.5 shrink-0 text-slate-600" />
+                                      {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                    <span className="flex items-center gap-1.5">
+                                      <span className={`h-1.5 w-1.5 rounded-full ${
+                                        item.status === "pending"
+                                          ? "bg-amber-400 animate-pulse"
+                                          : item.status === "running"
+                                            ? "bg-cyan-400 animate-pulse"
+                                            : "bg-emerald-500"
+                                      }`} />
+                                      <span className="text-[8px] font-mono font-semibold uppercase tracking-wider text-slate-400">
+                                        {item.status || "completed"}
+                                      </span>
+                                    </span>
+                                  </div>
+
+                                  {/* Delete Button */}
+                                  {item.status !== "pending" && item.status !== "running" && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteHistoryItem(item);
+                                      }}
+                                      className="absolute right-2 top-2 p-1 rounded bg-slate-950/80 border border-slate-900 text-slate-500 hover:text-red-500 hover:border-red-900/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer duration-200"
+                                      title="Purge audit from history"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Main Scanner Section */}
+                    <div className="lg:col-span-3 space-y-6">
+                      <div className="p-6 rounded-xl border border-slate-900 bg-black/60 backdrop-blur-md relative overflow-hidden">
                       <div className="absolute top-4 right-4 text-red-500/5">
                         <Shield className="h-16 w-16" />
                       </div>
@@ -1144,7 +1419,8 @@ export default function App() {
                       </div>
                     )}
                   </div>
-                )}
+                </div>
+              )}
 
                 {/* Secure Google Drive Vault Panel */}
                 {activeTab === "drive" && (

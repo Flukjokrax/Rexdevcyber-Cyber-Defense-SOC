@@ -22,6 +22,7 @@ export interface SecurityScanResult {
     remediation: string;
   }>;
   remediationReport: string;
+  status?: "pending" | "running" | "completed";
 }
 
 export interface Project {
